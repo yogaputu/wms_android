@@ -1,0 +1,345 @@
+package com.budimas.wms;
+
+import org.json.JSONObject;
+import org.json.JSONArray;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
+public class BudimasApiClient {
+    private static final int CONNECT_TIMEOUT_MS = 15000;
+    private static final int READ_TIMEOUT_MS = 30000;
+
+    private final AuthSession session;
+
+    public BudimasApiClient(AuthSession session) {
+        this.session = session;
+    }
+
+    public JSONObject login(String identity, String password) throws Exception {
+        JSONObject payload = new JSONObject();
+        payload.put("identity", identity);
+        payload.put("email", identity);
+        payload.put("username", identity);
+        payload.put("login", identity);
+        payload.put("password", password);
+
+        try {
+            return post("auth/login", payload, "");
+        } catch (ApiException firstError) {
+            if (firstError.statusCode == 404 || firstError.statusCode == 405 || firstError.statusCode == 422) {
+                return post("v1/auth/login", payload, "");
+            }
+            throw firstError;
+        }
+    }
+
+    public JSONObject fetchProfile(String token) throws Exception {
+        try {
+            return get("extra/user/detail-login", token);
+        } catch (ApiException firstError) {
+            if (firstError.statusCode == 404 || firstError.statusCode == 405) {
+                return get("v1/auth/me", token);
+            }
+            throw firstError;
+        }
+    }
+
+    public JSONObject getWmsIncomingNoteDetails(String nota) throws Exception {
+        return get("incoming/incoming/note-details/" + encode(nota), session.getToken());
+    }
+
+    public JSONObject processWmsIncomingPallet(JSONObject payload) throws Exception {
+        return post("incoming/incoming/process-single-pallet", payload, session.getToken());
+    }
+
+    public JSONObject getWmsPickingDraftDetail(String nota) throws Exception {
+        return get("picking/picking/draft-detail/" + encode(nota), session.getToken());
+    }
+
+    public JSONObject scanWmsPickingRack(JSONObject payload) throws Exception {
+        return post("picking/picking/scan-rak", payload, session.getToken());
+    }
+
+    public JSONObject finalizeWmsPicking(JSONObject payload) throws Exception {
+        return post("picking/picking/finalize", payload, session.getToken());
+    }
+
+    public JSONObject getWmsCheckerPending() throws Exception {
+        return get("checker/checker/pending", session.getToken());
+    }
+
+    public JSONObject confirmWmsChecker(JSONObject payload) throws Exception {
+        return post("checker/checker/confirm", payload, session.getToken());
+    }
+
+    public JSONObject getWmsRacks(String search, String typeRak, String statusRak) throws Exception {
+        StringBuilder path = new StringBuilder("wms/racks?active=true");
+        appendQuery(path, "search", search);
+        appendQuery(path, "type_rak", typeRak);
+        appendQuery(path, "status_rak", statusRak);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject getWmsInventory(String search, String status) throws Exception {
+        StringBuilder path = new StringBuilder("inventory/inventory/inventory?limit=80");
+        appendQuery(path, "search", search);
+        appendQuery(path, "status", status);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject getWmsInventoryBarcode(String productCode) throws Exception {
+        return get("inventory/inventory/barcode/" + encode(productCode), session.getToken());
+    }
+
+    public JSONObject getWmsTransactions(String search, String typeFilter) throws Exception {
+        StringBuilder path = new StringBuilder("transactions/transactions?skip=0&limit=80&date_filter=all");
+        appendQuery(path, "search", search);
+        appendQuery(path, "type_filter", typeFilter);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject getWmsReadyToLoad(String search) throws Exception {
+        StringBuilder path = new StringBuilder("loading/loading/ready-to-load?");
+        appendQuery(path, "search", search);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject processWmsLoading(JSONObject payload) throws Exception {
+        return post("loading/loading/process", payload, session.getToken());
+    }
+
+    public JSONObject searchWmsManifest(String driverCode) throws Exception {
+        StringBuilder path = new StringBuilder("droping/droping/search-manifest?");
+        appendQuery(path, "kode_driver", driverCode);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject dropWmsManifestToQuarantine(JSONObject payload) throws Exception {
+        return post("droping/droping/drop-in-karantina", payload, session.getToken());
+    }
+
+    public JSONObject completeWmsDelivery(JSONObject payload) throws Exception {
+        return post("loading/loading/complete-delivery", payload, session.getToken());
+    }
+
+    public JSONObject getWmsQuarantineOpen(String search) throws Exception {
+        StringBuilder path = new StringBuilder("quarantine/quarantine/open?status=OPEN");
+        appendQuery(path, "search", search);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject processWmsQuarantineQc(JSONObject payload) throws Exception {
+        return post("quarantine/quarantine/qc", payload, session.getToken());
+    }
+
+    public JSONObject getWmsTemporaryStocks(String search) throws Exception {
+        return getWmsTemporaryStocks(search, "");
+    }
+
+    public JSONObject getWmsTemporaryStocks(String search, String sourceRack) throws Exception {
+        return getWmsTemporaryStocks(search, sourceRack, "");
+    }
+
+    public JSONObject getWmsTemporaryStocks(String search, String sourceRack, String targetRack) throws Exception {
+        StringBuilder path = new StringBuilder("transfer/transfer/temporary-stocks?");
+        appendQuery(path, "kode_barang", search);
+        appendQuery(path, "kode_rak", sourceRack);
+        appendQuery(path, "target_rak", targetRack);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject confirmWmsTransfer(JSONObject payload) throws Exception {
+        return post("transfer/transfer/confirm", payload, session.getToken());
+    }
+
+    public JSONObject getWmsLowStockAlerts() throws Exception {
+        return get("transfer/transfer/alerts/low-stock", session.getToken());
+    }
+
+    public JSONObject submitWmsStockOpname(JSONObject payload) throws Exception {
+        return post("wms/mobile/stock-opname", payload, session.getToken());
+    }
+
+    public JSONObject getWmsStockOpnameSchedules(String branchId) throws Exception {
+        StringBuilder path = new StringBuilder("wms/mobile/stock-opname/schedules?");
+        appendQuery(path, "id_cabang", branchId);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject startWmsStockOpname(int stockOpnameId, JSONObject payload) throws Exception {
+        return post("wms/mobile/stock-opname/" + stockOpnameId + "/start", payload, session.getToken());
+    }
+
+    public JSONObject getWmsStockOpnameRacks(int stockOpnameId) throws Exception {
+        return get("wms/mobile/stock-opname/" + stockOpnameId + "/racks", session.getToken());
+    }
+
+    public JSONObject getWmsStockOpnameProductUoms(String productCode) throws Exception {
+        StringBuilder path = new StringBuilder("wms/mobile/stock-opname/product-uoms?");
+        appendQuery(path, "kode_barang", productCode);
+        return get(path.toString(), session.getToken());
+    }
+
+    public JSONObject finishWmsStockOpname(int stockOpnameId, JSONObject payload) throws Exception {
+        return post("wms/mobile/stock-opname/" + stockOpnameId + "/finish", payload, session.getToken());
+    }
+
+    public JSONObject submitWmsPickingSalesOrder(JSONObject payload) throws Exception {
+        return post("wms/mobile/picking-so", payload, session.getToken());
+    }
+
+    public JSONObject submitWmsVehicleLoading(JSONObject payload) throws Exception {
+        return post("wms/mobile/vehicle-loading", payload, session.getToken());
+    }
+
+    public JSONObject submitWmsManifestSignature(JSONObject payload) throws Exception {
+        return post("wms/mobile/manifest-signature", payload, session.getToken());
+    }
+
+    public JSONObject submitWmsDroppingTransfer(JSONObject payload) throws Exception {
+        return post("wms/mobile/dropping-transfer", payload, session.getToken());
+    }
+
+    public JSONObject submitWmsReturnInbound(JSONObject payload) throws Exception {
+        return post("wms/mobile/return-inbound", payload, session.getToken());
+    }
+
+    private JSONObject get(String path, String token) throws Exception {
+        return request("GET", path, null, token);
+    }
+
+    private JSONObject post(String path, JSONObject payload, String token) throws Exception {
+        return request("POST", path, payload, token);
+    }
+
+    private JSONObject request(String method, String path, JSONObject payload, String token) throws Exception {
+        URL url = new URL(resolveUrl(path));
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(READ_TIMEOUT_MS);
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        if (token != null && !token.trim().isEmpty()) {
+            connection.setRequestProperty("Authorization", "Bearer " + token.trim());
+        }
+
+        if (payload != null) {
+            connection.setDoOutput(true);
+            byte[] bytes = payload.toString().getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(bytes.length);
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(bytes);
+            }
+        }
+
+        int statusCode = connection.getResponseCode();
+        String body = readBody(statusCode >= 200 && statusCode < 400
+                ? connection.getInputStream()
+                : connection.getErrorStream());
+
+        if (statusCode < 200 || statusCode >= 400) {
+            throw new ApiException(statusCode, extractMessage(body, "HTTP " + statusCode));
+        }
+
+        if (body == null || body.trim().isEmpty()) {
+            return new JSONObject();
+        }
+        String cleanBody = body.trim();
+        if (cleanBody.startsWith("[")) {
+            return new JSONObject().put("items", new JSONArray(cleanBody));
+        }
+        return unwrap(new JSONObject(cleanBody));
+    }
+
+    private JSONObject unwrap(JSONObject response) {
+        JSONObject data = response.optJSONObject("data");
+        if (data != null) {
+            return data;
+        }
+        JSONObject result = response.optJSONObject("result");
+        if (result != null) {
+            return result;
+        }
+        JSONObject pages = response.optJSONObject("pages");
+        if (pages != null) {
+            return pages;
+        }
+        return response;
+    }
+
+    private String readBody(InputStream stream) throws Exception {
+        if (stream == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+            }
+        }
+        return builder.toString();
+    }
+
+    private String extractMessage(String body, String fallback) {
+        try {
+            JSONObject json = new JSONObject(body);
+            String message = AuthSession.firstString(json, "message", "error", "msg", "detail", "description");
+            if (!message.isEmpty()) {
+                return message;
+            }
+            JSONObject data = json.optJSONObject("data");
+            if (data != null) {
+                message = AuthSession.firstString(data, "message", "error", "msg", "detail");
+                if (!message.isEmpty()) {
+                    return message;
+                }
+            }
+            JSONArray skipped = json.optJSONArray("skipped");
+            if (skipped != null && skipped.length() > 0) {
+                String first = skipped.optString(0, "");
+                if (!first.trim().isEmpty()) {
+                    return first.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return fallback;
+    }
+
+    private String resolveUrl(String path) {
+        String cleanPath = path.startsWith("/") ? path.substring(1) : path;
+        return AuthSession.API_BASE_URL + cleanPath;
+    }
+
+    private String encode(String value) {
+        try {
+            return java.net.URLEncoder.encode(value == null ? "" : value, "UTF-8").replace("+", "%20");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void appendQuery(StringBuilder path, String key, String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return;
+        }
+        path.append("&").append(key).append("=").append(encode(value.trim()));
+    }
+
+    public static class ApiException extends Exception {
+        public final int statusCode;
+
+        public ApiException(int statusCode, String message) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+    }
+}

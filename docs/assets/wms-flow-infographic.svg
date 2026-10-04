@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7FAFF"/>
+      <stop offset="48%" stop-color="#EFF6FF"/>
+      <stop offset="100%" stop-color="#F8FBF6"/>
+    </linearGradient>
+    <linearGradient id="header" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0B5ED7"/>
+      <stop offset="55%" stop-color="#0E7490"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <linearGradient id="phone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#102A56"/>
+      <stop offset="100%" stop-color="#071426"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+    <filter id="softShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="16" markerHeight="16" refX="11" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,5 L0,10 z" fill="#0B5ED7"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="16" markerHeight="16" refX="11" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,5 L0,10 z" fill="#16A34A"/>
+    </marker>
+    <style>
+      .title { font: 800 54px Arial, sans-serif; fill: #FFFFFF; letter-spacing: 0; }
+      .subtitle { font: 400 24px Arial, sans-serif; fill: #EAF5FF; }
+      .label { font: 800 22px Arial, sans-serif; fill: #0F172A; }
+      .small { font: 400 17px Arial, sans-serif; fill: #475569; }
+      .tiny { font: 700 14px Arial, sans-serif; fill: #64748B; }
+      .whiteSmall { font: 400 17px Arial, sans-serif; fill: #DDEBFF; }
+      .whiteLabel { font: 800 22px Arial, sans-serif; fill: #FFFFFF; }
+      .section { font: 800 24px Arial, sans-serif; fill: #102A56; }
+      .card { fill: #FFFFFF; stroke: #E2E8F0; stroke-width: 2; rx: 18; filter: url(#softShadow); }
+      .mainCard { fill: #FFFFFF; stroke: #D8E3F0; stroke-width: 2; rx: 22; filter: url(#shadow); }
+      .blue { fill: #EFF6FF; stroke: #B7D4FF; }
+      .green { fill: #ECFDF5; stroke: #BBF7D0; }
+      .amber { fill: #FFFBEB; stroke: #FDE68A; }
+      .purple { fill: #F5F3FF; stroke: #DDD6FE; }
+      .red { fill: #FFF1F2; stroke: #FECDD3; }
+      .teal { fill: #ECFEFF; stroke: #A5F3FC; }
+      .pillText { font: 800 15px Arial, sans-serif; fill: #FFFFFF; }
+      .phoneText { font: 800 15px Arial, sans-serif; fill: #102A56; }
+      .phoneSub { font: 400 12px Arial, sans-serif; fill: #64748B; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1200" fill="url(#bg)"/>
+
+  <rect x="70" y="54" width="1660" height="152" rx="34" fill="url(#header)" filter="url(#shadow)"/>
+  <text x="112" y="125" class="title">Alur Budimas WMS Android</text>
+  <text x="114" y="166" class="subtitle">Gambaran proses dari login, inbound, putaway, stok gudang, outbound, sampai laporan transaksi</text>
+  <rect x="1374" y="92" width="288" height="76" rx="18" fill="#FFFFFF" opacity="0.16"/>
+  <text x="1400" y="122" class="whiteSmall">API Production</text>
+  <text x="1400" y="154" class="whiteLabel">58.147.185.142:9092/api</text>
+
+  <rect x="90" y="248" width="1148" height="830" rx="28" class="mainCard"/>
+  <text x="128" y="304" class="section">Alur Operasional Utama</text>
+  <text x="128" y="336" class="small">Operator memakai aplikasi Android sebagai front-end mobile. Data utama tetap dibaca dan ditulis ke server WMS.</text>
+
+  <rect x="132" y="382" width="238" height="130" rx="18" class="card blue"/>
+  <circle cx="166" cy="418" r="18" fill="#0B5ED7"/>
+  <text x="160" y="425" class="pillText">1</text>
+  <text x="194" y="421" class="label">Login API</text>
+  <text x="158" y="458" class="small">User masuk, token</text>
+  <text x="158" y="483" class="small">disimpan lokal dan dipakai</text>
+  <text x="158" y="508" class="small">untuk request berikutnya.</text>
+
+  <rect x="448" y="382" width="250" height="130" rx="18" class="card purple"/>
+  <circle cx="482" cy="418" r="18" fill="#7C3AED"/>
+  <text x="476" y="425" class="pillText">2</text>
+  <text x="510" y="421" class="label">Dashboard</text>
+  <text x="474" y="458" class="small">Pilih modul: Incoming,</text>
+  <text x="474" y="483" class="small">Picking, Inventory, Rak,</text>
+  <text x="474" y="508" class="small">Transfer, Loading, dll.</text>
+
+  <rect x="780" y="382" width="250" height="130" rx="18" class="card green"/>
+  <circle cx="814" cy="418" r="18" fill="#16A34A"/>
+  <text x="808" y="425" class="pillText">3</text>
+  <text x="842" y="421" class="label">Incoming</text>
+  <text x="806" y="458" class="small">Muat nota incoming,</text>
+  <text x="806" y="483" class="small">cek item, lalu proses</text>
+  <text x="806" y="508" class="small">pallet dan QR.</text>
+
+  <rect x="132" y="604" width="238" height="140" rx="18" class="card teal"/>
+  <circle cx="166" cy="640" r="18" fill="#0E7490"/>
+  <text x="160" y="647" class="pillText">4</text>
+  <text x="194" y="643" class="label">Putaway</text>
+  <text x="158" y="680" class="small">Scan QR pallet/barang,</text>
+  <text x="158" y="705" class="small">scan lokasi rak, lalu</text>
+  <text x="158" y="730" class="small">validasi ke master rak.</text>
+
+  <rect x="448" y="604" width="250" height="140" rx="18" class="card amber"/>
+  <circle cx="482" cy="640" r="18" fill="#D97706"/>
+  <text x="476" y="647" class="pillText">5</text>
+  <text x="510" y="643" class="label">Inventory &amp; Rak</text>
+  <text x="474" y="680" class="small">Cek stok, batch, lokasi,</text>
+  <text x="474" y="705" class="small">barcode barang, dan</text>
+  <text x="474" y="730" class="small">daftar master rak.</text>
+
+  <rect x="780" y="604" width="250" height="140" rx="18" class="card red"/>
+  <circle cx="814" cy="640" r="18" fill="#E11D48"/>
+  <text x="808" y="647" class="pillText">6</text>
+  <text x="842" y="643" class="label">Picking</text>
+  <text x="806" y="680" class="small">Muat draft picking,</text>
+  <text x="806" y="705" class="small">scan rak tetap, lalu</text>
+  <text x="806" y="730" class="small">submit hasil picking.</text>
+
+  <rect x="132" y="832" width="238" height="130" rx="18" class="card blue"/>
+  <circle cx="166" cy="868" r="18" fill="#0B5ED7"/>
+  <text x="160" y="875" class="pillText">7</text>
+  <text x="194" y="871" class="label">Loading</text>
+  <text x="158" y="908" class="small">Barang ready to load</text>
+  <text x="158" y="933" class="small">dikonfirmasi masuk</text>
+  <text x="158" y="958" class="small">manifest kendaraan.</text>
+
+  <rect x="448" y="832" width="250" height="130" rx="18" class="card green"/>
+  <circle cx="482" cy="868" r="18" fill="#16A34A"/>
+  <text x="476" y="875" class="pillText">8</text>
+  <text x="510" y="871" class="label">Transaksi</text>
+  <text x="474" y="908" class="small">Riwayat incoming,</text>
+  <text x="474" y="933" class="small">picking, transfer, dan</text>
+  <text x="474" y="958" class="small">adjustment dibaca API.</text>
+
+  <rect x="780" y="832" width="250" height="130" rx="18" class="card purple"/>
+  <circle cx="814" cy="868" r="18" fill="#7C3AED"/>
+  <text x="808" y="875" class="pillText">9</text>
+  <text x="842" y="871" class="label">Cetak QR</text>
+  <text x="806" y="908" class="small">QR hasil API dapat</text>
+  <text x="806" y="933" class="small">dicetak via Android Print</text>
+  <text x="806" y="958" class="small">atau printer Bluetooth.</text>
+
+  <path d="M370 447 H438" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M698 447 H770" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M905 512 C905 560 252 548 252 594" stroke="#16A34A" stroke-width="5" fill="none" marker-end="url(#arrowGreen)"/>
+  <path d="M370 674 H438" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M698 674 H770" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M905 744 C905 796 252 784 252 822" stroke="#16A34A" stroke-width="5" fill="none" marker-end="url(#arrowGreen)"/>
+  <path d="M370 897 H438" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M698 897 H770" stroke="#0B5ED7" stroke-width="5" fill="none" marker-end="url(#arrowBlue)"/>
+
+  <rect x="1068" y="392" width="126" height="560" rx="22" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="1097" y="436" class="tiny">SERVER WMS</text>
+  <line x1="1131" y1="462" x2="1131" y2="889" stroke="#CBD5E1" stroke-width="4" stroke-dasharray="8 12"/>
+  <circle cx="1131" cy="506" r="20" fill="#0B5ED7"/>
+  <circle cx="1131" cy="624" r="20" fill="#16A34A"/>
+  <circle cx="1131" cy="744" r="20" fill="#D97706"/>
+  <circle cx="1131" cy="864" r="20" fill="#7C3AED"/>
+  <text x="1079" y="978" class="small">Semua modul baca/tulis</text>
+  <text x="1079" y="1003" class="small">data real melalui API.</text>
+
+  <path d="M1030 447 C1070 447 1086 492 1110 500" stroke="#94A3B8" stroke-width="4" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M1030 674 C1070 674 1088 635 1110 626" stroke="#94A3B8" stroke-width="4" fill="none" marker-end="url(#arrowBlue)"/>
+  <path d="M1030 897 C1070 897 1087 864 1110 864" stroke="#94A3B8" stroke-width="4" fill="none" marker-end="url(#arrowBlue)"/>
+
+  <rect x="1282" y="248" width="420" height="830" rx="46" fill="url(#phone)" filter="url(#shadow)"/>
+  <rect x="1312" y="296" width="360" height="724" rx="28" fill="#F8FAFC"/>
+  <rect x="1430" y="270" width="124" height="12" rx="6" fill="#344663"/>
+  <text x="1340" y="356" class="label">Budimas WMS</text>
+  <text x="1340" y="384" class="small">Warehouse Management System</text>
+  <rect x="1340" y="416" width="304" height="84" rx="18" fill="#EAF2FF" stroke="#B7D4FF"/>
+  <text x="1362" y="452" class="phoneText">API aktif</text>
+  <text x="1362" y="478" class="phoneSub">Server production 9092</text>
+
+  <rect x="1340" y="530" width="142" height="92" rx="18" fill="#F5F3FF" stroke="#DDD6FE"/>
+  <text x="1362" y="566" class="phoneText">Incoming</text>
+  <text x="1362" y="594" class="phoneSub">Nota real server</text>
+  <rect x="1502" y="530" width="142" height="92" rx="18" fill="#ECFEFF" stroke="#A5F3FC"/>
+  <text x="1524" y="566" class="phoneText">Picking</text>
+  <text x="1524" y="594" class="phoneSub">Scan rak tetap</text>
+
+  <rect x="1340" y="642" width="142" height="92" rx="18" fill="#FFF1F2" stroke="#FECDD3"/>
+  <text x="1362" y="678" class="phoneText">Inventory</text>
+  <text x="1362" y="706" class="phoneSub">Stok API server</text>
+  <rect x="1502" y="642" width="142" height="92" rx="18" fill="#FFFBEB" stroke="#FDE68A"/>
+  <text x="1524" y="678" class="phoneText">Rak</text>
+  <text x="1524" y="706" class="phoneSub">Master DB</text>
+
+  <rect x="1340" y="754" width="142" height="92" rx="18" fill="#ECFDF5" stroke="#BBF7D0"/>
+  <text x="1362" y="790" class="phoneText">Transfer</text>
+  <text x="1362" y="818" class="phoneSub">Stok siap pindah</text>
+  <rect x="1502" y="754" width="142" height="92" rx="18" fill="#EFF6FF" stroke="#B7D4FF"/>
+  <text x="1524" y="790" class="phoneText">Loading</text>
+  <text x="1524" y="818" class="phoneSub">Ready to load</text>
+
+  <rect x="1340" y="866" width="142" height="92" rx="18" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="1362" y="902" class="phoneText">History</text>
+  <text x="1362" y="930" class="phoneSub">Transaksi</text>
+  <rect x="1502" y="866" width="142" height="92" rx="18" fill="#F5F3FF" stroke="#DDD6FE"/>
+  <text x="1524" y="902" class="phoneText">Printer</text>
+  <text x="1524" y="930" class="phoneSub">Bluetooth QR</text>
+
+  <rect x="126" y="1098" width="1548" height="54" rx="20" fill="#102A56"/>
+  <text x="156" y="1132" class="whiteSmall">Ringkasnya: aplikasi mobile memandu operator scan dan input di gudang, sedangkan server WMS menjadi sumber data nota, stok, rak, transaksi, QR, dan manifest.</text>
+</svg>

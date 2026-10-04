@@ -1,0 +1,70 @@
+plugins {
+    id "com.android.application"
+}
+
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.budimas.wms"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.budimas.wms"
+        minSdk 21
+        targetSdk 35
+        versionCode 11
+        versionName "1.0.10"
+        testInstrumentationRunner "com.budimas.wms.LoadingUiInstrumentation"
+        buildConfigField "String", "API_BASE_URL", "\"https://erp.budimas.swakarya.my.id:9092/api/\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == "org.jetbrains.kotlin") {
+            details.useVersion "1.8.22"
+        }
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core:1.13.1"
+    implementation "androidx.print:print:1.0.0"
+    implementation "com.google.android.gms:play-services-code-scanner:16.1.0"
+    implementation "com.google.zxing:core:3.5.3"
+    testImplementation "junit:junit:4.13.2"
+}

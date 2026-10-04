@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Budimas WMS</string>
+    <string name="file_provider_authority">com.budimas.wms.fileprovider</string>
+</resources>

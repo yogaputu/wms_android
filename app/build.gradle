@@ -16,8 +16,8 @@ android {
         applicationId "com.budimas.wms"
         minSdk 21
         targetSdk 35
-        versionCode 11
-        versionName "1.0.10"
+        versionCode 12
+        versionName "1.0.11"
         testInstrumentationRunner "com.budimas.wms.LoadingUiInstrumentation"
         buildConfigField "String", "API_BASE_URL", "\"https://erp.budimas.swakarya.my.id:9092/api/\""
     }

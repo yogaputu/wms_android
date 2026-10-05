@@ -910,9 +910,10 @@ public class MainActivity extends Activity {
             stockLine += " | Stok rak ini: " + rackAvailableQty + " PCS";
         }
         if (availableQty >= 0) {
-            stockLine += " | Total stok siap: " + availableQty + " PCS";
+            stockLine += " | Saldo rak Tetap/Lorong: " + availableQty + " PCS";
         }
         wrapper.addView(small(stockLine));
+        if (row.has("stok_ready")) wrapper.addView(small("Stok Ready Gudang: " + first(row, "stok_ready") + " PCS"));
         if (ready && suggestedScanQty > 0 && suggestedScanQty < remainingQty) {
             wrapper.addView(small("Rak ini akan dipindai " + suggestedScanQty
                     + " PCS dahulu; lanjutkan dari rak berikutnya setelah memuat ulang draft."));
@@ -1292,7 +1293,7 @@ public class MainActivity extends Activity {
         LinearLayout form = card();
         form.addView(sectionTitle("Konfirmasi Checker"));
         EditText checker = input("", "Nama checker", InputType.TYPE_CLASS_TEXT);
-        EditText dock = input("", "Kode loading dock / area kendaraan", InputType.TYPE_CLASS_TEXT);
+        EditText dock = input(first(task, "loading_dock", "dock_code", "DockRencana"), "Kode loading dock / area kendaraan", InputType.TYPE_CLASS_TEXT);
         form.addView(checker);
         form.addView(dock);
         form.addView(primaryButton("Simpan Checker OK / NG", v -> submitChecker(task, value(checker), value(dock), detailRows, quantityInputs, damagedInputs, checkerNotes)));
@@ -4786,6 +4787,7 @@ public class MainActivity extends Activity {
         row.addView(small("Qty: " + fallback(first(item, "qty_ct"), "0") + " CT + "
                 + fallback(first(item, "qty_pc"), "0") + " PC ("
                 + fallback(first(item, "qty_pcs"), "0") + " PCS)"));
+        row.addView(small("Batch: " + transferStockBatch(item) + " | Expired: " + transferStockExpired(item)));
         row.addView(small("Alasan: " + fallback(first(item, "reason"), "-")));
         row.addView(compactAction("Proses QC", v -> showQuarantineQcForm(item)));
         return row;
@@ -4892,8 +4894,8 @@ public class MainActivity extends Activity {
         LinearLayout detail = card();
         detail.addView(title(fallback(first(item, "nama_barang"), "Produk"), 18));
         detail.addView(keyValue("Total diperiksa", total + " PCS"));
-        detail.addView(keyValue("Batch / Exp", fallback(first(item, "batch_number"), "-") + " / "
-                + fallback(first(item, "expired_date"), "-")));
+        detail.addView(keyValue("Batch", transferStockBatch(item)));
+        detail.addView(keyValue("Expired", transferStockExpired(item)));
         content.addView(detail);
 
         LinearLayout form = card();

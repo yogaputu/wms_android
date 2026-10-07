@@ -1878,6 +1878,10 @@ public class MainActivity extends Activity {
     }
 
     private void showLoadingAssignmentForm() {
+        if (!BuildConfig.ENABLE_LOADING_UI_REFRESH) {
+            showLegacyLoadingAssignmentForm();
+            return;
+        }
         final JSONObject previous = loadingSelection;
         loadingSelection = null;
         currentScreen = "loading_selection";
@@ -1903,12 +1907,71 @@ public class MainActivity extends Activity {
         });
     }
 
+    // Legacy fallback retained for an explicit build-time rollback only.
+    private android.widget.Spinner shipmentSpinner(java.util.List<String> labels) {
+        android.widget.Spinner spinner = new android.widget.Spinner(this);
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        return spinner;
+    }
+
+    private void showLegacyLoadingAssignmentForm() {
+        loadingSelection = null;
+        showLoadingScreen("Loading Armada", "Memuat penugasan kendaraan...");
+        final LinearLayout pendingContent = content;
+        executor.execute(() -> {
+            try {
+                JSONArray assignments = normalizeRows(apiClient.getLoadingAssignments());
+                uiHandler.post(() -> {
+                    if (isFinishing() || content != pendingContent) return;
+                    setShell("Loading Armada", "Pilih armada, driver, tanggal sebelum memuat barang", "dashboard", true);
+                    LinearLayout form = card();
+                    java.util.ArrayList<String> fleetIds = new java.util.ArrayList<>(), fleetNames = new java.util.ArrayList<>();
+                    java.util.ArrayList<String> driverIds = new java.util.ArrayList<>(), driverNames = new java.util.ArrayList<>();
+                    java.util.ArrayList<String> dates = new java.util.ArrayList<>();
+                    fleetIds.add(""); fleetNames.add("Pilih armada"); driverIds.add(""); driverNames.add("Pilih driver"); dates.add("Pilih tanggal pengiriman");
+                    for (int i = 0; i < assignments.length(); i++) {
+                        JSONObject a = assignments.optJSONObject(i);
+                        if (a == null) continue;
+                        if (!fleetIds.contains(a.optString("id_armada"))) { fleetIds.add(a.optString("id_armada")); fleetNames.add(a.optString("vehicle")); }
+                        if (!driverIds.contains(a.optString("id_driver"))) { driverIds.add(a.optString("id_driver")); driverNames.add(a.optString("driver")); }
+                        if (!dates.contains(a.optString("delivery_date"))) dates.add(a.optString("delivery_date"));
+                    }
+                    android.widget.Spinner fleets = shipmentSpinner(fleetNames), drivers = shipmentSpinner(driverNames), days = shipmentSpinner(dates);
+                    form.addView(sectionTitle("Armada")); form.addView(fleets);
+                    form.addView(sectionTitle("Driver")); form.addView(drivers);
+                    form.addView(sectionTitle("Tanggal Pengiriman")); form.addView(days);
+                    form.addView(primaryButton("Tampilkan Barang Lolos Checker", v -> {
+                        for (int i = 0; i < assignments.length(); i++) {
+                            JSONObject a = assignments.optJSONObject(i);
+                            if (a != null && a.optString("id_armada").equals(fleetIds.get(fleets.getSelectedItemPosition()))
+                                    && a.optString("id_driver").equals(driverIds.get(drivers.getSelectedItemPosition()))
+                                    && a.optString("delivery_date").equals(dates.get(days.getSelectedItemPosition()))) {
+                                loadingQuery = "";
+                                loadingSelection = a; loadLoadingList(); return;
+                            }
+                        }
+                        toast("Pilih kombinasi armada, driver, dan tanggal yang terdaftar pada jadwal.");
+                    }));
+                    if (assignments.length() == 0) form.addView(body("Belum ada jadwal kiriman untuk akun ini."));
+                    content.addView(form);
+                });
+            } catch (Exception e) {
+                uiHandler.post(() -> {
+                    if (!isFinishing() && content == pendingContent)
+                        showApiError("Loading Armada", "Penugasan belum bisa dimuat.", e, () -> showLoadingAssignmentForm());
+                });
+            }
+        });
+    }
+
     private void renderLoadingAssignmentForm(JSONArray vehicles, JSONArray drivers, JSONObject previous) {
         setShell("Loading Armada", "Pilih kendaraan, driver, dan tanggal pengiriman.", "dashboard", true);
         final JSONObject[] vehicle = {findMasterById(vehicles, previous == null ? "" : previous.optString("id_armada"))};
         final JSONObject[] driver = {findMasterById(drivers, previous == null ? "" : previous.optString("id_driver"))};
         final JSONObject[] replacementDriver = {findMasterById(drivers, previous == null ? "" : previous.optString("replacement_driver_id"))};
-        final String[] date = {previous == null ? "" : previous.optString("delivery_date")};
+        final String[] date = {LoadingFormSupport.validIsoDate(previous == null ? "" : previous.optString("delivery_date"))};
         LinearLayout form = card();
         form.addView(sectionTitle("Jadwal Loading"));
         form.addView(small(vehicles.length() + " armada · " + drivers.length() + " driver dari master sesuai akses akun."));
@@ -4900,6 +4963,30 @@ public class MainActivity extends Activity {
 
         LinearLayout form = card();
         form.addView(sectionTitle("Hasil QC"));
+        boolean needsLot = "MANUAL_REQUIRED".equals(first(item, "lot_status"))
+                || "MULTIPLE".equals(first(item, "lot_status"));
+        EditText lotBatch = input(first(item, "batch_number"), "Batch fisik barang", InputType.TYPE_CLASS_TEXT);
+        EditText lotExpiry = input(first(item, "expired_date"), "Expired YYYY-MM-DD", InputType.TYPE_CLASS_DATETIME);
+        CheckBox noExpiry = new CheckBox(this);
+        noExpiry.setText("Produk ini tidak memiliki expired (sudah diperiksa)");
+        noExpiry.setTextColor(isDarkMode() ? Color.WHITE : Color.DKGRAY);
+        lotExpiry.setOnClickListener(v -> {
+            Calendar initial = Calendar.getInstance();
+            new DatePickerDialog(this, (picker, year, month, day) ->
+                    lotExpiry.setText(String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day)),
+                    initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show();
+        });
+        if (needsLot) {
+            form.addView(body("Batch/expired belum pasti. Cocokkan dengan fisik barang. Jika barang berbeda lot, pisahkan detail retur sebelum QC."));
+            JSONArray options = item.optJSONArray("lot_options");
+            if (options != null) for (int i = 0; i < options.length(); i++) {
+                JSONObject lot = options.optJSONObject(i);
+                if (lot != null) form.addView(small("Lot asal: " + transferStockBatch(lot) + " / " + transferStockExpired(lot)));
+            }
+            form.addView(lotBatch);
+            form.addView(lotExpiry);
+            form.addView(noExpiry);
+        }
         EditText good = input(String.valueOf(total), "Qty GOOD (PCS)", InputType.TYPE_CLASS_NUMBER);
         EditText bad = input("0", "Qty BAD (PCS)", InputType.TYPE_CLASS_NUMBER);
         TextView rack = masterSelectionField(quarantineTargetRack.isEmpty()
@@ -4912,12 +4999,14 @@ public class MainActivity extends Activity {
         form.addView(rack);
         form.addView(qcName);
         form.addView(primaryButton("Simpan Hasil QC", v -> submitQuarantineQc(item,
-                value(good), value(bad), quarantineTargetRack, value(qcName))));
+                value(good), value(bad), quarantineTargetRack, value(qcName),
+                needsLot, value(lotBatch), value(lotExpiry), noExpiry.isChecked())));
         form.addView(secondaryButton("Kembali", v -> loadQuarantineQc()));
         content.addView(form);
     }
 
-    private void submitQuarantineQc(JSONObject item, String goodText, String badText, String rack, String qcName) {
+    private void submitQuarantineQc(JSONObject item, String goodText, String badText, String rack, String qcName,
+                                    boolean needsLot, String batch, String expiry, boolean noExpiry) {
         int total = parseOptionalInt(item, 0, "qty_pcs");
         int good = parsePositiveInt(goodText, -1);
         int bad = parsePositiveInt(badText, -1);
@@ -4933,6 +5022,10 @@ public class MainActivity extends Activity {
             toast("Nama checker / QC wajib diisi.");
             return;
         }
+        if (needsLot && (batch.isEmpty() || (expiry.isEmpty() && !noExpiry))) {
+            toast("Lengkapi batch dan expired fisik barang terlebih dahulu.");
+            return;
+        }
         showLoadingScreen("QC Karantina", "Menyimpan hasil pemeriksaan...");
         executor.execute(() -> {
             try {
@@ -4942,6 +5035,12 @@ public class MainActivity extends Activity {
                 payload.put("qty_bad", bad);
                 payload.put("target_rack", rack);
                 payload.put("qc_name", qcName);
+                if (needsLot) {
+                    payload.put("lot_confirmed", true);
+                    payload.put("batch_number", batch);
+                    payload.put("expired_date", noExpiry ? JSONObject.NULL : expiry);
+                    payload.put("no_expiry", noExpiry);
+                }
                 putIfNotEmpty(payload, "user_id", currentUserId());
                 JSONObject result = apiClient.processWmsQuarantineQc(payload);
                 uiHandler.post(() -> {

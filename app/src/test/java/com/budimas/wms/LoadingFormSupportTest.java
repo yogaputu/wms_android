@@ -5,6 +5,11 @@ import java.util.Locale;
 import static org.junit.Assert.*;
 
 public class LoadingFormSupportTest {
+    @Test public void malformedRestoredDateCannotCrashTheForm() {
+        for (String value : new String[]{null, "", "null", "2026", "2026-02-30", "2026-13-02", "2026-1-02"})
+            assertEquals("", LoadingFormSupport.validIsoDate(value));
+        assertEquals("2026-10-06", LoadingFormSupport.validIsoDate("2026-10-06"));
+    }
     @Test public void calendarProducesIsoDateWithZeroBasedMonth() {
         assertEquals("2026-10-02", LoadingFormSupport.isoDate(2026, 9, 2));
         assertEquals("2028-02-29", LoadingFormSupport.isoDate(2028, 1, 29));

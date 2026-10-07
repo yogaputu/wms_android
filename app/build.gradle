@@ -16,8 +16,10 @@ android {
         applicationId "com.budimas.wms"
         minSdk 21
         targetSdk 35
-        versionCode 12
-        versionName "1.0.11"
+        versionCode 13
+        versionName "1.0.12"
+        // Searchable master pickers and calendar are now the default Loading UI.
+        buildConfigField "boolean", "ENABLE_LOADING_UI_REFRESH", (project.findProperty("BUDIMAS_LOADING_UI_REFRESH") ?: "true")
         testInstrumentationRunner "com.budimas.wms.LoadingUiInstrumentation"
         buildConfigField "String", "API_BASE_URL", "\"https://erp.budimas.swakarya.my.id:9092/api/\""
     }

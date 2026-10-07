@@ -82,7 +82,10 @@ public class LoadingUiInstrumentation extends Instrumentation {
             awaitText("Jadwal Loading");
             screenshot("loading-light");
             onUi(() -> {
-                check(Color.luminance(description("Armada:").getCurrentTextColor()) < 0.1, "Light theme field text contrast");
+                // A refreshed form can show a muted placeholder. Check actual
+                // contrast on its white surface, not the selected-text color.
+                float luminance = Color.luminance(description("Armada:").getCurrentTextColor());
+                check(1.05 / (luminance + 0.05) >= 4.5, "Light theme field text contrast");
                 api.empty = true;
                 call("showLoadingAssignmentForm");
             });

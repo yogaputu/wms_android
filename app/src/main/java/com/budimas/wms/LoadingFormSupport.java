@@ -18,6 +18,15 @@ final class LoadingFormSupport {
         return String.format(Locale.ROOT, "%04d-%02d-%02d", year, zeroBasedMonth + 1, day);
     }
 
+    static String validIsoDate(String value) {
+        if (value == null || !value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) return "";
+        try {
+            return isoDate(Integer.parseInt(value.substring(0, 4)),
+                    Integer.parseInt(value.substring(5, 7)) - 1,
+                    Integer.parseInt(value.substring(8, 10)));
+        } catch (IllegalArgumentException invalid) { return ""; }
+    }
+
     static boolean matches(String query, String... values) {
         StringBuilder text = new StringBuilder();
         for (String value : values) if (value != null) text.append(' ').append(value);

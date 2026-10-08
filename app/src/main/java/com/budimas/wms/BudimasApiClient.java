@@ -98,6 +98,13 @@ public class BudimasApiClient {
         return get(path.toString(), session.getToken());
     }
 
+    public JSONObject getIncomingPlacementOptions(boolean pallet, String branch, String search) throws Exception {
+        StringBuilder path = new StringBuilder(pallet ? "wms/pallets?active=true" : "wms/racks?active=true&type_rak=Titipan");
+        appendQuery(path, "id_cabang", branch);
+        appendQuery(path, "search", search);
+        return get(path.toString(), session.getToken());
+    }
+
     public JSONObject getWmsInventory(String search, String status) throws Exception {
         StringBuilder path = new StringBuilder("inventory/inventory/inventory?limit=80");
         appendQuery(path, "search", search);

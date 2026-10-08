@@ -615,9 +615,8 @@ public class MainActivity extends Activity {
         String code = first(row, "KodeBarang", "KodeStok", "kode_barang", "product_code");
         String name = first(row, "NamaBarang", "nama_barang", "product_name");
         String rawStatus = first(row, "StatusGudang", "status_gudang", "status");
-        boolean processed = row.optBoolean("SudahProses")
-                || "DONE".equalsIgnoreCase(rawStatus)
-                || "READY".equalsIgnoreCase(rawStatus);
+        boolean processed = row.has("SudahProses") ? row.optBoolean("SudahProses")
+                : "DONE".equalsIgnoreCase(rawStatus) || "READY".equalsIgnoreCase(rawStatus);
         String statusLabel = processed ? "Sudah Konfirmasi Gudang" : "Belum Konfirmasi Gudang";
         LinearLayout top = horizontal();
         LinearLayout text = vertical();
@@ -648,9 +647,116 @@ public class MainActivity extends Activity {
             wrapper.addView(small("Zona otomatis: " + labelZona + " · Gedung G" + fallback(gudang, "1")));
         }
         if (!processed) {
-            wrapper.addView(tinyButton("Konfirmasi", v -> processApiIncoming(row, nota)));
+            wrapper.addView(tinyButton("Pilih Pallet & Rak", v -> showIncomingPlacementForm(row, nota)));
         }
         return wrapper;
+    }
+
+    private void showIncomingPlacementForm(JSONObject row, String nota) {
+        currentScreen = "api_incoming_placement";
+        setShell("Penempatan Incoming", "Nota " + nota, "receiving", true);
+        int remaining = Math.max(0, parseOptionalInt(row, incomingTotalQty(row), "remaining_qty_pcs"));
+        if (!row.has("remaining_qty_pcs")) remaining = Math.max(0, incomingTotalQty(row) - row.optInt("processed_qty", 0));
+        final int maximum = remaining;
+        LinearLayout form = card();
+        form.addView(sectionTitle(fallback(first(row, "NamaBarang", "nama_barang"), "Incoming")));
+        form.addView(body("Pilih pallet fisik dan rak Titipan. Quantity maksimal " + maximum + " PCS sesuai sisa penerimaan."));
+        final String[] pallet = {""};
+        final String[] rack = {first(row, "KodeRakTitipan", "kode_rak_titipan")};
+        String branch = first(row, "id_cabang", "cabang_id");
+        final String placementBranch = fallback(branch, currentBranchId());
+        TextView palletField = masterOptionRow("Pallet", "Pilih pallet");
+        TextView rackField = masterOptionRow("Rak Titipan", fallback(rack[0], "Pilih rak Titipan"));
+        palletField.setOnClickListener(v -> showIncomingPlacementPicker(true, placementBranch, selected -> {
+            pallet[0] = first(selected, "kode_pallet");
+            palletField.setText("Pallet: " + pallet[0] + "   Ubah");
+        }));
+        rackField.setOnClickListener(v -> showIncomingPlacementPicker(false, placementBranch, selected -> {
+            rack[0] = first(selected, "kode_rak");
+            rackField.setText("Rak Titipan: " + rack[0] + "   Ubah");
+        }));
+        form.addView(palletField);
+        form.addView(rackField);
+        form.addView(small("Batch"));
+        EditText batch = input(first(row, "batch", "Batch", "batch_number"), "Batch penerimaan", InputType.TYPE_CLASS_TEXT);
+        form.addView(batch);
+        form.addView(small("Expired (YYYY-MM-DD)"));
+        EditText expiry = input(apiDateOnly(first(row, "expired", "Expired", "expired_date", "expiry_date", "ExpiredDate")), "YYYY-MM-DD", InputType.TYPE_CLASS_TEXT);
+        form.addView(expiry);
+        form.addView(small("Quantity (PCS)"));
+        EditText quantity = input(String.valueOf(maximum), "Quantity PCS", InputType.TYPE_CLASS_NUMBER);
+        form.addView(quantity);
+        form.addView(primaryButton("Konfirmasi Penempatan", v -> {
+            int qty;
+            try { qty = Integer.parseInt(value(quantity)); }
+            catch (NumberFormatException e) { toast("Quantity harus berupa angka PCS."); return; }
+            if (qty <= 0 || qty > maximum) { toast("Quantity harus 1 sampai " + maximum + " PCS."); return; }
+            if (pallet[0].isEmpty() || rack[0].isEmpty()) { toast("Pilih pallet dan rak Titipan terlebih dahulu."); return; }
+            String expired = value(expiry);
+            if (!expired.isEmpty()) {
+                try {
+                    String[] parts = expired.split("-", -1);
+                    if (parts.length != 3 || !LoadingFormSupport.isoDate(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]) - 1, Integer.parseInt(parts[2])).equals(expired)) throw new IllegalArgumentException();
+                } catch (RuntimeException e) { toast("Expired harus tanggal valid YYYY-MM-DD."); return; }
+            }
+            try {
+                JSONObject edited = new JSONObject(row.toString());
+                int perUnit = incomingPerUnit(row);
+                edited.put("QtyCT", qty / perUnit);
+                edited.put("QtyPC", qty % perUnit);
+                edited.put("qty_pcs", qty);
+                edited.put("kode_pallet", pallet[0]);
+                edited.put("kode_rak", rack[0]);
+                for (String alias : new String[]{"batch", "Batch", "batch_number", "expired", "Expired", "expired_date", "expiry_date", "ExpiredDate"}) edited.remove(alias);
+                edited.put("batch", value(batch));
+                edited.put("expired", expired);
+                edited.put("id_cabang", placementBranch);
+                processApiIncoming(edited, nota);
+            } catch (Exception e) { toast("Data penempatan belum valid."); }
+        }));
+        content.addView(form);
+        content.addView(secondaryButton("Kembali ke Nota", v -> loadApiIncoming(nota)));
+    }
+
+    private void showIncomingPlacementPicker(boolean pallet, String branch, MasterSelectionAction action) {
+        LinearLayout body = vertical();
+        body.setPadding(dp(20), dp(8), dp(20), 0);
+        EditText search = input("", pallet ? "Cari kode pallet / produk" : "Cari kode rak Titipan", InputType.TYPE_CLASS_TEXT);
+        body.addView(search);
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout choices = vertical();
+        scroll.addView(choices);
+        body.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(340)));
+        final AlertDialog[] dialog = new AlertDialog[1];
+        Runnable load = () -> {
+            final String query = value(search);
+            choices.removeAllViews();
+            choices.addView(small("Memuat pilihan..."));
+            executor.execute(() -> {
+                try {
+                    JSONArray rows = normalizeRows(apiClient.getIncomingPlacementOptions(pallet, branch, query));
+                    uiHandler.post(() -> {
+                        if (dialog[0] == null || !dialog[0].isShowing()) return;
+                        choices.removeAllViews();
+                        if (rows.length() == 0) choices.addView(body("Pilihan tidak tersedia. Periksa master di ERP atau ubah pencarian."));
+                        for (int i = 0; i < rows.length(); i++) {
+                            JSONObject selected = rows.optJSONObject(i);
+                            if (selected == null || "Rusak".equalsIgnoreCase(first(selected, "status_pallet"))) continue;
+                            String code = first(selected, pallet ? "kode_pallet" : "kode_rak");
+                            TextView option = masterOptionRow(code, pallet ? "Isi " + selected.optInt("used_qty_pcs") + " PCS · " + fallback(first(selected, "nama_barang"), "Pallet umum") : "Rak Titipan");
+                            option.setOnClickListener(v -> { action.onSelect(selected); dialog[0].dismiss(); });
+                            choices.addView(option);
+                        }
+                    });
+                } catch (Exception e) {
+                    uiHandler.post(() -> { choices.removeAllViews(); choices.addView(body(operatorErrorMessage(e, "Pilihan belum bisa dimuat."))); });
+                }
+            });
+        };
+        body.addView(secondaryButton("Cari", v -> load.run()));
+        dialog[0] = new AlertDialog.Builder(this).setTitle(pallet ? "Pilih Pallet" : "Pilih Rak Titipan").setView(body).setNegativeButton("Batal", null).create();
+        dialog[0].show();
+        load.run();
     }
 
     private void processApiIncoming(JSONObject row, String nota) {
@@ -692,7 +798,7 @@ public class MainActivity extends Activity {
                 putIfNotEmpty(payload, "expired", expired);
                 putIfNotEmpty(payload, "expired_date", expired);
                 payload.put("reference_no", nota);
-                putIfNotEmpty(payload, "id_cabang", currentBranchId());
+                putIfNotEmpty(payload, "id_cabang", fallback(first(row, "id_cabang"), currentBranchId()));
                 putIfNotEmpty(payload, "user_id", currentUserId());
 
                 JSONObject result = apiClient.processWmsIncomingPallet(payload);
